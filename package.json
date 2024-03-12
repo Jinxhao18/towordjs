@@ -1,0 +1,20 @@
+{
+  "name": "lbc",
+  "version": "1.0.0",
+  "description": "",
+  "main": "officegen.js",
+  "dependencies": {
+    "axios": "^1.6.7",
+    "docxtemplater": "^3.44.0",
+    "docxtemplater-image-module": "^3.1.0",
+    "docxtemplater-image-module-free": "git+ssh://https://github.com/evilc0des/docxtemplater-image-module-free.git",
+    "officegen": "^0.6.5",
+    "pizzip": "^3.1.6"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
