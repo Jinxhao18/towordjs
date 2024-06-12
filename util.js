@@ -51,7 +51,15 @@ async function main() {
             const extractedDataArray = await processFile(file);
             allData.push(...extractedDataArray);
         }));
-
+        // allData 过滤掉重复的数据
+        let result = [];
+        let obj = {};
+        for (let i = 0; i < allData.length; i++) {
+            if (!obj[allData[i].subjectTitle]) {
+                result.push(allData[i]);
+                obj[allData[i].subjectTitle] = true;
+            }
+        }
         const outputFileName = path.join(outputFolderPath, 'combined_result.json');
         await fs.writeFile(outputFileName, JSON.stringify(allData, null, 2));
         console.log('Combined result file written successfully:', outputFileName);
