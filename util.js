@@ -18,15 +18,20 @@ async function processFile(file) {
                     rightAnswers: Number(item.rightAnswers),
                     subjectType: item.subjectType,
                     isJudgeAndRight: item.rightAnswers==1?true:false,
-                    isJudgeAndFalse: item.rightAnswers==0?true:false
+                    isJudgeAndFalse: item.rightAnswers==0?true:false,
+                    isRight: item.answerRight ==1?true:false,
+                    isFalse: item.answerRight !=1 ?true:false,
                 };
             } else  {
+                const answerId = item.answer?item.answer.split('&'):[];
                 return {
                     subjectTitle: item.subjectTitle,
                     answerAnalysis: item.answerAnalysis,
-                    subjectOptions: item.subjectOptionVOList.filter(option => option.isRightFlag === 1),
+                    subjectOptions: item.subjectOptionVOList.filter(option => (option.isRightFlag === 1) || (answerId.includes(option.optionId))),
                     subjectType: item.subjectType,
-                    isChooseType: true
+                    isChooseType: true,
+                    isRight: item.answerRight ==1?true:false,
+                    isFalse: item.answerRight !=1 ?true:false,
                 };
             }
 
