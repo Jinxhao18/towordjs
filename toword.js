@@ -36,11 +36,7 @@ async function processImages(jsonData) {
                 const localImagePath = await downloadImageToLocal(imageUrl);
                 // 创建新的字段，并删除原字段中的整个图片块
                 const newFieldName = `${field}_img`;
-                jsonData[newFieldName] = localImagePath
-                // jsonData[newFieldName] = {
-                //     data: fs.readFileSync(localImagePath),
-                //     extension: path.extname(localImagePath).slice(1),
-                // };
+                jsonData[newFieldName] = localImagePath;
                 jsonData[field] = jsonData[field].replace(match, ''); // 清除整个图片块
             }
         }
@@ -57,40 +53,36 @@ async function processImages(jsonData) {
                     const localImagePath = await downloadImageToLocal(imageUrl);
                     // 创建新的字段，并删除原字段中的整个图片块
                     const newFieldName = `optionTitle_img`;
-                    option[newFieldName] = localImagePath
-                    // option[newFieldName] = {
-                    //     data: fs.readFileSync(localImagePath),
-                    //     extension: path.extname(localImagePath).slice(1),
-                    // };
+                    option[newFieldName] = localImagePath;
                     option.optionTitle = option.optionTitle.replace(match, ''); // 清除整个图片块
                 }
             }
         }
     }
+    // 处理 allSubjectOptions
+    if (jsonData.allSubjectOptions && Array.isArray(jsonData.allSubjectOptions)) {
+        const sortMap = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
+        for (const option of jsonData.allSubjectOptions) {
+            const matches = option.optionTitle && option.optionTitle.match(/<p><img[^>]+src="([^">]+)"[^>]*><\/p>/g);
+
+            if (matches) {
+                for (const match of matches) {
+                    const imageUrl = match.match(/src="([^"]+)"/)[1];
+                    const localImagePath = await downloadImageToLocal(imageUrl);
+                    // 创建新的字段，并删除原字段中的整个图片块
+                    const newFieldName = `optionTitle_img`;
+                    option[newFieldName] = localImagePath;
+                    option.optionTitle = option.optionTitle.replace(match, ''); // 清除整个图片块
+                }
+            }
+            // 根据顺序，在 optionTitle 前面增加英文序号，A、B、C、D
+            const optionIndex = jsonData.allSubjectOptions.indexOf(option);
+            option.optionTitle = `${sortMap[optionIndex]}. ${option.optionTitle}`;
+        }
+    }
 }
 
 // 下载图片到本地
-// async function downloadImageToLocal(imageUrl) {
-//     try {
-//         const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
-//         const imageBuffer = Buffer.from(response.data);
-
-//         const fileName = path.basename(imageUrl);
-//         const localImagePath = path.join(imagesFolder, fileName);
-
-//         await fs.promises.writeFile(localImagePath, imageBuffer);
-
-//         console.log(`Image downloaded successfully to: ${localImagePath}`);
-//         // 计算相对路径
-//         const relativeImagePath = path.relative(process.cwd(), localImagePath);
-
-//         return relativeImagePath;
-//     } catch (error) {
-//         console.error('Error downloading image:', error);
-//         return null;
-//     }
-// }
-
 async function downloadImageToLocal(imageUrl) {
     try {
         const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
@@ -102,26 +94,12 @@ async function downloadImageToLocal(imageUrl) {
         await fs.promises.writeFile(localImagePath, imageBuffer);
 
         console.log(`Image downloaded successfully to: ${localImagePath}`);
-        // console.log({
-        //     data: imageBuffer,
-        //     extension: path.extname(localImagePath).slice(1),
-        // });
-        // return {
-        //     data: imageBuffer,
-        //     extension: path.extname(localImagePath).slice(1),
-        // };
-        return localImagePath
+        return localImagePath;
     } catch (error) {
         console.error('Error downloading image:', error);
         return null;
     }
 }
-
-
-
-
-
-
 
 fs.readdir(inputFolderPath, async (err, files) => {
     if (err) {
@@ -143,18 +121,15 @@ fs.readdir(inputFolderPath, async (err, files) => {
 
                 const template = await readFileAsync(templatePath, 'binary');
                 const zip = new PizZip(template);
-                const doc = new Docxtemplater(zip,{
+                const doc = new Docxtemplater(zip, {
                     modules: [
                         new ImageModule({
-                            centered:false,
+                            centered: false,
                             getImage(tagValue, tagName) {
-                                // console.log({ tagValue, tagName });
-                                // return tagValue.data;
                                 return fs.readFileSync(tagValue);
                             },
                             getSize() {
-                                // it also is possible to return a size in centimeters, like this : return [ "2cm", "3cm" ];
-                                return [300,300];
+                                return [300, 300];
                             },
                         }),
                     ],
@@ -165,23 +140,21 @@ fs.readdir(inputFolderPath, async (err, files) => {
                     answerAnalysis: jsonData.answerAnalysis && cleanSpecialCharacters(jsonData.answerAnalysis),
                     index: index + 1
                 }));
-                console.log(cleanedDataArray[1]);
+
                 doc.setData({ jsonData: cleanedDataArray });
 
                 doc.render();
 
+                // 删除空白段落
+                const zipContent = doc.getZip().generate({ type: 'nodebuffer' });
+                const outputZip = new PizZip(zipContent);
+                const docXml = outputZip.file("word/document.xml").asText();
+                const cleanedXml = docXml.replace(/<w:p[^>]*><w:r><w:t><\/w:t><\/w:r><\/w:p>/g, ""); // 删除空白段落
+                outputZip.file("word/document.xml", cleanedXml);
+
                 const outFilePath = path.join(outputFolderPath, `${file.replace('.json', '_result')}.docx`);
-                const outputStream = fs.createWriteStream(outFilePath);
+                await writeFileAsync(outFilePath, outputZip.generate({ type: 'nodebuffer' }));
 
-                const writePromise = new Promise((resolve, reject) => {
-                    outputStream.on('finish', resolve);
-                    outputStream.on('error', reject);
-                });
-
-                outputStream.write(doc.getZip().generate({ type: 'nodebuffer' }));
-                outputStream.end();
-
-                await writePromise;
                 console.log('Word 文件成功写入:', outFilePath);
 
             } catch (parseError) {
@@ -194,3 +167,4 @@ fs.readdir(inputFolderPath, async (err, files) => {
 
     console.log('所有文件成功处理完成！');
 });
+

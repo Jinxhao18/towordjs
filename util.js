@@ -14,11 +14,13 @@ async function processFile(file) {
             if (item.subjectType === 1) {
                 return {
                     subjectTitle: item.subjectTitle,
-                    answerAnalysis: item.answerAnalysis,
+                    answerAnalysis: item.answerAnalysis || '',
                     rightAnswers: Number(item.rightAnswers),
                     subjectType: item.subjectType,
                     isJudgeAndRight: item.rightAnswers==1?true:false,
                     isJudgeAndFalse: item.rightAnswers==0?true:false,
+                    judgeAnswer: item.answerRight ==1 ? item.answer == 1 ?  "正确" : "错误" : item.answer == 0 ? "正确" : "错误",
+                    isJudgeType: true,
                     isRight: item.answerRight ==1?true:false,
                     isFalse: item.answerRight !=1 ?true:false,
                 };
@@ -26,10 +28,13 @@ async function processFile(file) {
                 const answerId = item.answer?item.answer.split('&'):[];
                 return {
                     subjectTitle: item.subjectTitle,
-                    answerAnalysis: item.answerAnalysis,
+                    answerAnalysis: item.answerAnalysis || '',
                     subjectOptions: item.subjectOptionVOList.filter(option => (option.isRightFlag === 1) || (answerId.includes(option.optionId))),
+                    allSubjectOptions: item.subjectOptionVOList,
                     subjectType: item.subjectType,
                     isChooseType: true,
+                    isMultipleChoose: item.subjectType == 3,
+                    isSingleChoose: item.subjectType == 2,
                     isRight: item.answerRight ==1?true:false,
                     isFalse: item.answerRight !=1 ?true:false,
                 };
